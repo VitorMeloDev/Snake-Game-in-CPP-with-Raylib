@@ -13,6 +13,16 @@ int cellCount = 25;
 
 double lastUpdateTime = 0;
 
+bool ElementInDeque(std::deque<Vector2> deque, Vector2 element)
+{
+    for (unsigned int i = 0; i < deque.size(); i++)
+    {
+        if(Vector2Equals(deque[i], element))
+            return true;
+    }
+    return false;
+}
+
 bool eventTriggered(double interval)
 {
 	double currentTime = GetTime();
@@ -53,12 +63,12 @@ class Food
 public:
     Vector2 position;
 	Texture2D texture;
-    Food()
+    Food(std::deque<Vector2> snakeBody)
     {
         Image image = LoadImage("Graphics/food.png");
 		texture = LoadTextureFromImage(image);
 		UnloadImage(image);
-		position = GenerateRandomPos();
+		position = GenerateRandomPos(snakeBody);
 	}
 
     ~Food()
@@ -71,12 +81,21 @@ public:
         DrawTexture(texture, position.x * cellSize, position.y * cellSize, WHITE);
 	}
 
-    Vector2 GenerateRandomPos()
+    Vector2 GenerateRandomCell()
     {
-		float x = GetRandomValue(0, cellCount - 1);
-		float y = GetRandomValue(0, cellCount - 1);
+        float x = GetRandomValue(0, cellCount - 1);
+        float y = GetRandomValue(0, cellCount - 1);
+        return { x, y };
+    }
 
-		return { x, y };
+    Vector2 GenerateRandomPos(std::deque<Vector2> snakeBody)
+    {
+        Vector2 position = GenerateRandomCell();
+        while (ElementInDeque(snakeBody, position))
+        {
+            position = GenerateRandomCell();
+        }
+		return position;
     }
 };
 
@@ -84,12 +103,13 @@ class Game
 {
 public:
 	Snake snake;
-	Food food;
+	Food food = Food(snake.body);
 
     void Update()
     {
         if (eventTriggered(0.2))
             snake.Update();
+		CheckCollisionWithFood();
     }
 
     void Draw()
@@ -97,6 +117,15 @@ public:
         food.Draw();
         snake.Draw();
     }
+
+    void CheckCollisionWithFood()
+    {
+        if (Vector2Equals(snake.body[0], food.position))
+        {
+            snake.body.push_back(snake.body[snake.body.size() - 1]);
+            food.position = food.GenerateRandomPos(snake.body);
+        }
+	}
 };
 
 int main()
