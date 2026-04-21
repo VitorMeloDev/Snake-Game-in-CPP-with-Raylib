@@ -10,6 +10,7 @@ Color darkGreen = { 43, 51, 24, 255 };
 
 int cellSize = 30;
 int cellCount = 25;
+int offset = 75;
 
 double lastUpdateTime = 0;
 
@@ -44,8 +45,8 @@ public:
     {
         for (unsigned int i = 0; i < body.size(); i++)
         {
-			float x = body[i].x * cellSize;
-            float y = body[i].y * cellSize;
+			float x = offset + body[i].x * cellSize;
+            float y = offset + body[i].y * cellSize;
             Rectangle segment = Rectangle{ x, y, (float)cellSize, (float)cellSize };
 			DrawRectangleRounded(segment, 0.5f, 6, darkGreen);
         }
@@ -69,6 +70,7 @@ class Food
 public:
     Vector2 position;
 	Texture2D texture;
+
     Food(std::deque<Vector2> snakeBody)
     {
         Image image = LoadImage("Graphics/food.png");
@@ -84,7 +86,7 @@ public:
 
     void Draw()
     {
-        DrawTexture(texture, position.x * cellSize, position.y * cellSize, WHITE);
+        DrawTexture(texture, offset + position.x * cellSize, offset + position.y * cellSize, WHITE);
 	}
 
     Vector2 GenerateRandomCell()
@@ -111,6 +113,23 @@ public:
 	Snake snake;
 	Food food = Food(snake.body);
 	bool running = true;
+	int score = 0;
+	Sound eatSound;
+    Sound wallSound;
+
+    Game()
+    {
+		InitAudioDevice();
+        eatSound = LoadSound("Sounds/eat.mp3");
+		wallSound = LoadSound("Sounds/wall.mp3");
+    }
+    
+    ~Game()
+    {
+		UnloadSound(eatSound);
+		UnloadSound(wallSound);
+        CloseAudioDevice();
+    }
 
     void Update()
     {
@@ -135,6 +154,8 @@ public:
         {
             snake.body.push_back(snake.body[snake.body.size() - 1]);
             food.position = food.GenerateRandomPos(snake.body);
+            PlaySound(eatSound);
+            score++;
         }
 	}
 
@@ -158,7 +179,9 @@ public:
 
     void GameOver()
     {
+		PlaySound(wallSound);
         snake.Reset();
+		score = 0;
 		food.position = food.GenerateRandomPos(snake.body);
 		running = false;
     }
@@ -166,7 +189,7 @@ public:
 
 int main()
 {
-    InitWindow(cellSize*cellCount, cellSize * cellCount, WINDOW_TITLE);
+    InitWindow(2 * offset + cellSize * cellCount, 2 * offset + cellSize * cellCount, WINDOW_TITLE);
 	SetTargetFPS(60);
 
 	Game game;
@@ -189,8 +212,13 @@ int main()
 
         if (GetKeyPressed() != 0)
             game.running = true;
+
 		game.Draw();
         ClearBackground(green);
+        DrawRectangleLinesEx(Rectangle{(float)offset - 5, (float)offset - 5, (float)cellSize * cellCount + 10, (float)cellSize * cellCount + 10 }, 5, darkGreen);
+        
+        DrawText("Snake Game - VM Games", offset - 5, 20, 40, darkGreen);
+        DrawText(TextFormat("Score: %i", game.score), offset - 5, offset + cellSize * cellCount + 10, 40, darkGreen);
         EndDrawing();    
     }
     CloseWindow();  
