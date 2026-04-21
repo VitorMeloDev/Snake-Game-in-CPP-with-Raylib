@@ -56,6 +56,12 @@ public:
 		body.pop_back();
         body.push_front(Vector2Add(body[0], direction));
     }
+
+    void Reset()
+    {
+        body = { Vector2{6,9}, Vector2{5,9}, Vector2{4,9} };
+        direction = { 1, 0 };
+	}
 };
 
 class Food
@@ -104,12 +110,17 @@ class Game
 public:
 	Snake snake;
 	Food food = Food(snake.body);
+	bool running = true;
 
     void Update()
     {
+        if (!running)
+            return;
         if (eventTriggered(0.2))
             snake.Update();
 		CheckCollisionWithFood();
+        CheckCollisionWithEdges();
+        CheckCollisionWithSelf();
     }
 
     void Draw()
@@ -126,6 +137,31 @@ public:
             food.position = food.GenerateRandomPos(snake.body);
         }
 	}
+
+    void CheckCollisionWithEdges()
+    {
+        if (snake.body[0].x == cellCount || snake.body[0].x == -1 || snake.body[0].y == cellCount || snake.body[0].y == -1)
+        {
+            GameOver();
+        }
+    }
+
+    void CheckCollisionWithSelf()
+    {
+		std::deque<Vector2> headlessBody = snake.body;
+        headlessBody.pop_front();
+        if (ElementInDeque(headlessBody, snake.body[0]))
+        {
+            GameOver();
+		}
+    }
+
+    void GameOver()
+    {
+        snake.Reset();
+		food.position = food.GenerateRandomPos(snake.body);
+		running = false;
+    }
 };
 
 int main()
@@ -151,6 +187,8 @@ int main()
         else if(IsKeyPressed(KEY_RIGHT) && game.snake.direction.x != -1)
             game.snake.direction = { 1, 0 };
 
+        if (GetKeyPressed() != 0)
+            game.running = true;
 		game.Draw();
         ClearBackground(green);
         EndDrawing();    
